@@ -38,15 +38,13 @@
 
     <script>
         // ====================================================
-        // 🛰️ 【ルール厳守】他社の画面は借りない！
-        // 以下の「本物のWebサイトのデータ窓口（RSS配信）」からあなたのJavaScriptが直接取得します。
-        // ここに好きなブログやまとめサイトのURLを足していけば検索対象を増やせます。
+        // 【ルール厳守】他社の画面は借りない！
+        // 以下の「本物のWebサイトのデータ窓口」からあなたのJavaScriptが直接取得します。
         // ====================================================
         const LIVE_SOURCES = [
-            "https://google.com",      # 総合ニュース
-            "https://hatena.ne.jp",                     # 今ネットでバズっているトレンド
-            "https://qiita.com",              # IT・プログラミング最新情報
-            "https://qiita.com"                     # ゲーム開発・最新技術情報
+            "https://google.com",
+            "https://hatena.ne.jp",
+            "https://qiita.com"
         ];
 
         let PAGES_DATABASE = [];
@@ -54,19 +52,19 @@
         // ページを開いた瞬間に、インターネット上の本物のサイトから一斉にデータをダウンロードする
         async function initSearchEngine() {
             const statusDiv = document.getElementById('status');
-            let successCount = 0;
 
             for (const srcUrl of LIVE_SOURCES) {
                 try {
-                    // 最も安定している公共のCORSプロキシを経由して、ブラウザのセキュリティブロックを100%回避する
-                    const proxyUrl = `https://htmldriven.com{encodeURIComponent(srcUrl)}`;
+                    // 最も安定している公共の軽量中継サービス（allorigins）を使い、セキュリティブロックを完全に回避します
+                    const proxyUrl = `https://allorigins.win{encodeURIComponent(srcUrl)}`;
                     const response = await fetch(proxyUrl);
                     if (!response.ok) continue;
                     
                     const resData = await response.json();
-                    // 中継サーバーから戻ってきた生のテキストデータを解析
+                    
+                    // 中継サーバーから戻ってきた生のテキストデータをXMLとして解析
                     const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(resData.body, "text/xml");
+                    const xmlDoc = parser.parseFromString(resData.contents, "text/xml");
                     const items = xmlDoc.querySelectorAll("item, entry");
                     
                     items.forEach(item => {
@@ -77,7 +75,7 @@
                         }
                         const description = item.querySelector("description, summary")?.textContent || "";
                         
-                        // 不要なHTMLタグをプログラムで綺麗にお掃除（サニタイズ）
+                        // 不要なHTMLタグをプログラムでお掃除
                         const cleanText = description.replace(/<[^>]*>/g, '').trim();
 
                         if (title && link) {
@@ -88,9 +86,8 @@
                             });
                         }
                     });
-                    successCount++;
                 } catch (e) {
-                    console.error("データ取得スキップ:", srcUrl, e);
+                    console.error("データ取得スキップ:", e);
                 }
             }
 
@@ -98,12 +95,12 @@
                 statusDiv.innerText = `🟢 準備完了: 本物のインターネット上から最新の ${PAGES_DATABASE.length} ページをあなた専用にインデックスしました！`;
                 statusDiv.style.color = "#34a853";
             } else {
-                statusDiv.innerText = "⚠️ インターネットデータの通信が一部ブロックされました。数秒後にページを再読み込みしてください。";
+                statusDiv.innerText = "⚠️ データの取得に失敗しました。数秒後にページを再読み込みしてください。";
                 statusDiv.style.color = "#ea4335";
             }
         }
 
-        // あなたのプログラム自作の「部分一致」検索＆スコアリングを実行（他社に頼らないチートなし！）
+        // あなたのプログラム自作の検索＆スコアリングを実行
         function doSearch() {
             const query = document.getElementById('search-input').value.trim().toLowerCase();
             const resultsContainer = document.getElementById('search-results');
@@ -114,7 +111,7 @@
 
             if (!query || PAGES_DATABASE.length === 0) return;
 
-            // 全角・半角スペースで複数ワードに分解
+            // スペースで複数ワードに分解
             const queryWords = query.split(/[\s　]+/).filter(w => w.length > 0);
             if (queryWords.length === 0) return;
 
@@ -123,8 +120,6 @@
             // 収集した本物のインターネットデータから、合致するページをあなたのロジックで抽出
             PAGES_DATABASE.forEach(page => {
                 const fullText = `${page.title} ${page.text}`.toLowerCase();
-                
-                // すべてのキーワードが含まれているか（AND検索）
                 const isMatchAll = queryWords.every(word => fullText.includes(word));
 
                 if (isMatchAll) {
@@ -141,11 +136,11 @@
                 return;
             }
 
-            // スコアが高い順（関連度順）に並び替える自作ランキング
+            // スコアが高い順（関連度順）に並び替える
             matchedResults.sort((a, b) => b.score - a.score);
             countContainer.innerText = `ネット上のリアルタイムデータから ${matchedResults.length} 件の本物のサイトを検出しました！`;
 
-            // 画面へのGoogle風デザイン出力
+            // 画面へのデザイン出力
             matchedResults.forEach(result => {
                 let highlightedTitle = result.title;
                 let highlightedSnippet = result.text;
@@ -173,7 +168,7 @@
             if (e.key === 'Enter') doSearch();
         });
 
-        // ページを開いた瞬間にインターネットに接続！
+        // 起動
         initSearchEngine();
     </script>
 </body>
