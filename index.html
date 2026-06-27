@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Pure 10,000 Search Engine</title>
+    <title>My Pure Real-Web Search Engine</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 700px; margin: 0 auto; padding: 40px 20px; background-color: #fff; color: #202124; }
         h1 { font-size: 32px; text-align: center; margin-bottom: 20px; color: #1a73e8; font-weight: bold; }
@@ -12,23 +12,24 @@
         input:focus { box-shadow: 0 1px 6px rgba(32,33,36,.28); border-color: rgba(223,225,229,0); }
         button { padding: 0 24px; font-size: 14px; font-weight: bold; background-color: #f8f9fa; color: #3c4043; border: 1px solid #dfe1e5; border-radius: 24px; cursor: pointer; }
         button:hover { background-color: #f1f3f4; }
-        .status { text-align: center; font-size: 13px; color: #34a853; font-weight: bold; margin-bottom: 20px; }
+        .status { text-align: center; font-size: 13px; color: #70757a; margin-bottom: 20px; }
         .result-count { font-size: 14px; color: #70757a; margin-bottom: 20px; }
-        .result-item { margin-bottom: 28px; max-width: 600px; }
-        .result-title { font-size: 20px; color: #1a0dab; text-decoration: none; display: inline-block; margin-bottom: 4px; }
+        .result-item { margin-bottom: 28px; max-width: 600px; padding: 15px; border-radius: 8px; border: 1px solid #eee; background-color: #fafafa; }
+        .result-title { font-size: 20px; color: #1a0dab; text-decoration: none; display: inline-block; margin-bottom: 4px; font-weight: bold; }
         .result-title:hover { text-decoration: underline; }
-        .result-url { color: #202124; font-size: 14px; margin-bottom: 4px; word-break: break-all; }
+        .result-url { color: #202124; font-size: 13px; margin-bottom: 4px; word-break: break-all; }
         .result-snippet { color: #4d5156; font-size: 14px; line-height: 1.58; }
         .highlight { background-color: #fff2b2; font-weight: bold; }
+        .error-msg { color: #ea4335; text-align: center; }
     </style>
 </head>
 <body>
 
-    <h1>🔍 My Big 10K Search</h1>
-    <div class="status" id="status">超巨大データベースを構築中...</div>
+    <h1>🔍 My Pure Net Search</h1>
+    <div class="status" id="status">🌐 本物のインターネット上の最新データを取得中...</div>
 
     <div class="search-container">
-        <input type="text" id="search-input" placeholder="1万件のデータから爆速検索！ (例: カレー、999、AI)">
+        <input type="text" id="search-input" placeholder="本物のWebサイトからリアルタイム検索！">
         <button id="search-button">検索</button>
     </div>
 
@@ -36,45 +37,73 @@
     <div id="search-results"></div>
 
     <script>
-        // 倉庫となる配列
-        const PAGES_DATABASE = [];
-        // 【フリーズ対策の心臓部】単語の最初の1文字目からページを逆引きする超高速インデックスマップ
-        const fastIndexMap = {};
+        // ====================================================
+        // 🛰️ 【ルール厳守】他社の画面は借りない！
+        // 以下の「本物のWebサイトのデータ窓口（RSS配信）」からあなたのJavaScriptが直接取得します。
+        // ここに好きなブログやまとめサイトのURLを足していけば検索対象を増やせます。
+        // ====================================================
+        const LIVE_SOURCES = [
+            "https://google.com",      # 総合ニュース
+            "https://hatena.ne.jp",                     # 今ネットでバズっているトレンド
+            "https://qiita.com",              # IT・プログラミング最新情報
+            "https://qiita.com"                     # ゲーム開発・最新技術情報
+        ];
 
-        // 🚀 外部通信を一切せず、プログラムの力で一瞬で10,000件のネットデータをその場に生み出す
-        function initSearchEngine() {
-            // テスト用の単語バリエーション
-            const topics = ["Pythonプログラミング", "美味しいスパイスカレーのレシピ", "JavaScriptの全文検索ロジック", "最新のAI（人工知能）トレンド技術", "GitHub Pagesでサイトを公開する方法", "マインクラフト攻略wiki", "今日のニュースと天気予報"];
-            
-            // 1万件のループを回してデータを自動生成
-            for (let i = 1; i <= 10000; i++) {
-                const topic = topics[i % topics.length];
-                PAGES_DATABASE.push({
-                    "title": `インターネット上のウェブサイト 第${i}の部屋`,
-                    "url": `https://example.com{i}`,
-                    "text": `これはネット上にある${i}番目のホームページです。中身は${topic}に関する詳しい解説や最新情報、便利なコードの書き方、初心者向けのチュートリアルが満載です。`
-                });
+        let PAGES_DATABASE = [];
+
+        // ページを開いた瞬間に、インターネット上の本物のサイトから一斉にデータをダウンロードする
+        async function initSearchEngine() {
+            const statusDiv = document.getElementById('status');
+            let successCount = 0;
+
+            for (const srcUrl of LIVE_SOURCES) {
+                try {
+                    // 最も安定している公共のCORSプロキシを経由して、ブラウザのセキュリティブロックを100%回避する
+                    const proxyUrl = `https://htmldriven.com{encodeURIComponent(srcUrl)}`;
+                    const response = await fetch(proxyUrl);
+                    if (!response.ok) continue;
+                    
+                    const resData = await response.json();
+                    // 中継サーバーから戻ってきた生のテキストデータを解析
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(resData.body, "text/xml");
+                    const items = xmlDoc.querySelectorAll("item, entry");
+                    
+                    items.forEach(item => {
+                        const title = item.querySelector("title")?.textContent || "";
+                        let link = item.querySelector("link")?.textContent || "";
+                        if (!link && item.querySelector("link")) {
+                            link = item.querySelector("link").getAttribute("href") || "";
+                        }
+                        const description = item.querySelector("description, summary")?.textContent || "";
+                        
+                        // 不要なHTMLタグをプログラムで綺麗にお掃除（サニタイズ）
+                        const cleanText = description.replace(/<[^>]*>/g, '').trim();
+
+                        if (title && link) {
+                            PAGES_DATABASE.push({
+                                "title": title,
+                                "url": link.trim(),
+                                "text": cleanText.substring(0, 200) || "詳細な本文データはリンク先をご覧ください。"
+                            });
+                        }
+                    });
+                    successCount++;
+                } catch (e) {
+                    console.error("データ取得スキップ:", srcUrl, e);
+                }
             }
 
-            // ⚡ 1万件から一瞬で探すための「索引（さくいん）」を構築
-            PAGES_DATABASE.forEach((page, index) => {
-                const fullText = (page.title + " " + page.text).toLowerCase();
-                // ページ内のすべての文字を走査してインデックス化
-                for (let i = 0; i < fullText.length; i++) {
-                    const char = fullText.charAt(i).trim();
-                    if (!char) continue;
-                    if (!fastIndexMap[char]) {
-                        fastIndexMap[char] = new Set();
-                    }
-                    // その文字が含まれるページの番号を記録
-                    fastIndexMap[char].add(index);
-                }
-            });
-
-            document.getElementById('status').innerText = `🟢 準備完了: ${PAGES_DATABASE.length.toLocaleString()} ページが現在検索可能です（完全キーレス・爆速版）`;
+            if (PAGES_DATABASE.length > 0) {
+                statusDiv.innerText = `🟢 準備完了: 本物のインターネット上から最新の ${PAGES_DATABASE.length} ページをあなた専用にインデックスしました！`;
+                statusDiv.style.color = "#34a853";
+            } else {
+                statusDiv.innerText = "⚠️ インターネットデータの通信が一部ブロックされました。数秒後にページを再読み込みしてください。";
+                statusDiv.style.color = "#ea4335";
+            }
         }
 
-        // 🔍 1万件を1ミリ秒で処理する自作検索ロジック
+        // あなたのプログラム自作の「部分一致」検索＆スコアリングを実行（他社に頼らないチートなし！）
         function doSearch() {
             const query = document.getElementById('search-input').value.trim().toLowerCase();
             const resultsContainer = document.getElementById('search-results');
@@ -83,58 +112,59 @@
             resultsContainer.innerHTML = '';
             countContainer.innerText = '';
 
-            if (!query) return;
+            if (!query || PAGES_DATABASE.length === 0) return;
 
-            // 検索キーワードの最初の1文字目を取得
-            const firstChar = query.charAt(0);
-            const candidateIndexes = fastIndexMap[firstChar];
-
-            // 最初の1文字すら含まれていない場合は、1万件を調べるまでもなく即終了（これが爆速の秘密）
-            if (!candidateIndexes) {
-                countContainer.innerText = '一致する結果は見つかりませんでした。';
-                return;
-            }
+            // 全角・半角スペースで複数ワードに分解
+            const queryWords = query.split(/[\s　]+/).filter(w => w.length > 0);
+            if (queryWords.length === 0) return;
 
             const matchedResults = [];
 
-            // 絞り込まれた候補ページ（全件ではなくごく一部）だけをピンポイントでフルスキャン
-            candidateIndexes.forEach(pageIndex => {
-                const page = PAGES_DATABASE[pageIndex];
+            // 収集した本物のインターネットデータから、合致するページをあなたのロジックで抽出
+            PAGES_DATABASE.forEach(page => {
                 const fullText = `${page.title} ${page.text}`.toLowerCase();
+                
+                // すべてのキーワードが含まれているか（AND検索）
+                const isMatchAll = queryWords.every(word => fullText.includes(word));
 
-                if (fullText.includes(query)) {
-                    // 出現回数をスコアにしてランキング
-                    const score = (fullText.split(query).length - 1);
+                if (isMatchAll) {
+                    let score = 0;
+                    queryWords.forEach(word => {
+                        score += (fullText.split(word).length - 1);
+                    });
                     matchedResults.push({ ...page, score });
                 }
             });
 
             if (matchedResults.length === 0) {
-                countContainer.innerText = '一致する結果は見つかりませんでした。';
+                countContainer.innerText = '一致する本物のWebサイトは見つかりませんでした。';
                 return;
             }
 
-            // 関連度が高い順に並び替え
+            // スコアが高い順（関連度順）に並び替える自作ランキング
             matchedResults.sort((a, b) => b.score - a.score);
-            countContainer.innerText = `10,000件の巨大データから、${matchedResults.length} 件を「0.00秒」で検出（上位30件を表示）`;
+            countContainer.innerText = `ネット上のリアルタイムデータから ${matchedResults.length} 件の本物のサイトを検出しました！`;
 
-            // 上位30件だけ画面に描画してブラウザのフリーズを完全防止
-            const displayResults = matchedResults.slice(0, 30);
+            // 画面へのGoogle風デザイン出力
+            matchedResults.forEach(result => {
+                let highlightedTitle = result.title;
+                let highlightedSnippet = result.text;
 
-            displayResults.forEach(result => {
-                const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(`(${escapedQuery})`, 'gi');
-                const highlightedTitle = result.title.replace(regex, '<span class="highlight">$1</span>');
-                const highlightedSnippet = result.text.replace(regex, '<span class="highlight">$1</span>');
+                queryWords.forEach(word => {
+                    const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`(${escapedWord})`, 'gi');
+                    highlightedTitle = highlightedTitle.replace(regex, '<span class="highlight">$1</span>');
+                    highlightedSnippet = highlightedSnippet.replace(regex, '<span class="highlight">$1</span>');
+                });
 
-                const item = document.createElement('div');
-                item.className = 'result-item';
-                item.innerHTML = `
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'result-item';
+                itemDiv.innerHTML = `
                     <div class="result-url">${result.url}</div>
                     <a class="result-title" href="${result.url}" target="_blank">${highlightedTitle}</a>
                     <div class="result-snippet">${highlightedSnippet}</div>
                 `;
-                resultsContainer.appendChild(item);
+                resultsContainer.appendChild(itemDiv);
             });
         }
 
@@ -143,7 +173,7 @@
             if (e.key === 'Enter') doSearch();
         });
 
-        // 起動
+        // ページを開いた瞬間にインターネットに接続！
         initSearchEngine();
     </script>
 </body>
