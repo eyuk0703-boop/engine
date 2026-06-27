@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Pure Net-Driven Search Engine</title>
+    <title>My Infinite Cloud Search</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 700px; margin: 0 auto; padding: 40px 20px; background-color: #fff; color: #202124; }
         h1 { font-size: 32px; text-align: center; margin-bottom: 20px; color: #1a73e8; font-weight: bold; }
@@ -12,24 +12,23 @@
         input:focus { box-shadow: 0 1px 6px rgba(32,33,36,.28); border-color: rgba(223,225,229,0); }
         button { padding: 0 24px; font-size: 14px; font-weight: bold; background-color: #f8f9fa; color: #3c4043; border: 1px solid #dfe1e5; border-radius: 24px; cursor: pointer; }
         button:hover { background-color: #f1f3f4; }
-        .status { text-align: center; font-size: 13px; color: #70757a; margin-bottom: 20px; }
+        .status { text-align: center; font-size: 13px; color: #34a853; font-weight: bold; margin-bottom: 20px; }
         .result-count { font-size: 14px; color: #70757a; margin-bottom: 20px; }
-        .result-item { margin-bottom: 28px; max-width: 600px; padding: 15px; border-radius: 8px; border: 1px solid #eee; background-color: #fafafa; }
-        .result-title { font-size: 20px; color: #1a0dab; text-decoration: none; display: inline-block; margin-bottom: 4px; font-weight: bold; }
+        .result-item { margin-bottom: 28px; max-width: 600px; }
+        .result-title { font-size: 20px; color: #1a0dab; text-decoration: none; display: inline-block; margin-bottom: 4px; }
         .result-title:hover { text-decoration: underline; }
-        .result-url { color: #202124; font-size: 13px; margin-bottom: 4px; word-break: break-all; }
+        .result-url { color: #202124; font-size: 14px; margin-bottom: 4px; word-break: break-all; }
         .result-snippet { color: #4d5156; font-size: 14px; line-height: 1.58; }
         .highlight { background-color: #fff2b2; font-weight: bold; }
-        .error-msg { color: #ea4335; text-align: center; }
     </style>
 </head>
 <body>
 
-    <h1>🔍 My Pure Net Search</h1>
-    <div class="status">🌐 外部サーバーからリアルタイムにデータを直接取得して検索</div>
+    <h1>🔍 My Cloud Search</h1>
+    <div class="status" id="status">クラウドデータベース読み込み中...</div>
 
     <div class="search-container">
-        <input type="text" id="search-input" placeholder="ネット上のデータをリアルタイム検索...">
+        <input type="text" id="search-input" placeholder="自動蓄積された無限のネットデータを検索...">
         <button id="search-button">検索</button>
     </div>
 
@@ -37,105 +36,68 @@
     <div id="search-results"></div>
 
     <script>
-        // ====================================================
-        // 🛰️ リアルタイムにデータを引っ張ってくるネット上のターゲットサイト一覧
-        // ブログやWebサイトのデータ窓口（RSS）のURLです。ここを好きなサイトに変えられます。
-        // ====================================================
-        const TARGET_NET_URLS = [
-            "https://google.com", // 総合
-            "https://hatena.ne.jp",                // ネットの話題・トレンド
-            "https://qiita.com"         // プログラミング・IT技術情報
-        ];
+        let PAGES_DATABASE = [];
 
-        async function doSearch() {
+        async function initSearchEngine() {
+            try {
+                // クラウドロボットが毎日更新してくれるJSONファイルを読み込む
+                const response = await fetch('./search-index.json');
+                if (!response.ok) throw new Error('データファイルが存在しません');
+                PAGES_DATABASE = await response.json();
+                document.getElementById('status').innerText = `🟢 稼働中: ${PAGES_DATABASE.length} ページが現在検索可能です`;
+            } catch (error) {
+                document.getElementById('status').innerText = '⚠️ 最初の巡回データを作成中です。しばらくお待ちください。';
+                console.error(error);
+            }
+        }
+
+        function doSearch() {
             const query = document.getElementById('search-input').value.trim().toLowerCase();
             const resultsContainer = document.getElementById('search-results');
             const countContainer = document.getElementById('result-count');
             
             resultsContainer.innerHTML = '';
-            countContainer.innerText = 'インターネットから生データを直接ダウンロード中...';
+            countContainer.innerText = '';
 
-            if (!query) {
-                countContainer.innerText = '';
-                return;
-            }
+            if (!query || PAGES_DATABASE.length === 0) return;
 
-            const allFetchedArticles = [];
-
-            // 1. 各サイトのデータをネット経由で本当に取得する
-            for (const targetUrl of TARGET_NET_URLS) {
-                try {
-                    // CORSのブロックを解除してくれる、世界で広く使われているオープンプロキシを経由してネットデータを引っこ抜く
-                    const proxyUrl = `https://allorigins.win{encodeURIComponent(targetUrl)}`;
-                    const response = await fetch(proxyUrl);
-                    if (!response.ok) continue;
-                    
-                    const proxyData = await response.json();
-                    
-                    // 取得した生のXML/HTMLテキストを解析用オブジェクトに変換
-                    const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(proxyData.contents, "text/xml");
-                    
-                    // RSSやAtomといったネット共通のデータ形式から「記事の要素」を抽出
-                    const items = xmlDoc.querySelectorAll("item, entry");
-                    
-                    items.forEach(item => {
-                        const title = item.querySelector("title")?.textContent || "";
-                        // URL（linkタグ）の抽出（形式によって異なるのを吸収）
-                        let link = item.querySelector("link")?.textContent || "";
-                        if (!link && item.querySelector("link")) {
-                            link = item.querySelector("link").getAttribute("href") || "";
-                        }
-                        const description = item.querySelector("description, summary")?.textContent || "";
-                        
-                        allFetchedArticles.push({
-                            title: title,
-                            url: link,
-                            snippet: description.replace(/<[^>]*>/g, '').substring(0, 150) // HTMLタグを消して150文字にトリミング
-                        });
-                    });
-                } catch (e) {
-                    console.error("サイトの取得に失敗しました:", targetUrl, e);
-                }
-            }
-
-            // 2. あなたのプログラムが自力で「部分一致」検索＆スコアリングを実行
-            const matchedResults = [];
-            allFetchedArticles.forEach(article => {
-                const fullText = (article.title + " " + article.snippet).toLowerCase();
-
+            const matchedIndexes = new Set();
+            PAGES_DATABASE.forEach((page, index) => {
+                const fullText = `${page.title} ${page.text}`.toLowerCase();
                 if (fullText.includes(query)) {
-                    // キーワードが何回含まれるかで関連度スコアを計算
-                    const score = (fullText.split(query).length - 1);
-                    matchedResults.push({ ...article, score });
+                    matchedIndexes.add(index);
                 }
             });
 
-            if (matchedResults.length === 0) {
-                countContainer.innerText = '一致するデータがネット上に見つかりませんでした。別の言葉を試してください。';
+            if (matchedIndexes.size === 0) {
+                countContainer.innerText = '一致する結果は見つかりませんでした。';
                 return;
             }
 
-            // 3. スコアが高い順（関連度順）に並び替える自作ランキングシステム
-            matchedResults.sort((a, b) => b.score - a.score);
+            const searchResults = Array.from(matchedIndexes).map(pageIndex => {
+                const page = PAGES_DATABASE[pageIndex];
+                const fullText = `${page.title} ${page.text}`.toLowerCase();
+                const score = (fullText.split(query).length - 1);
+                return { ...page, score };
+            });
 
-            countContainer.innerText = `インターネット上の複数のサイトから、キーワードに一致する ${matchedResults.length} 件の情報を自力で検出・処理しました！`;
+            searchResults.sort((a, b) => b.score - a.score);
+            countContainer.innerText = `${searchResults.length} 件見つかりました`;
 
-            // 4. 画面に出力
-            matchedResults.forEach(result => {
+            searchResults.forEach(result => {
                 const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const regex = new RegExp(`(${escapedQuery})`, 'gi');
                 const highlightedTitle = result.title.replace(regex, '<span class="highlight">$1</span>');
-                const highlightedSnippet = result.snippet.replace(regex, '<span class="highlight">$1</span>');
+                const highlightedSnippet = result.text.replace(regex, '<span class="highlight">$1</span>');
 
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'result-item';
-                itemDiv.innerHTML = `
+                const item = document.createElement('div');
+                item.className = 'result-item';
+                item.innerHTML = `
                     <div class="result-url">${result.url}</div>
                     <a class="result-title" href="${result.url}" target="_blank">${highlightedTitle}</a>
                     <div class="result-snippet">${highlightedSnippet}</div>
                 `;
-                resultsContainer.appendChild(itemDiv);
+                resultsContainer.appendChild(item);
             });
         }
 
@@ -143,6 +105,8 @@
         document.getElementById('search-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') doSearch();
         });
+
+        initSearchEngine();
     </script>
 </body>
 </html>
