@@ -5,9 +5,8 @@ import requests
 import time
 from bs4 import BeautifulSoup
 
-# スタート地点（ここからリンクをたどって無限に広がります）
-START_URL = "https://yahoo.co.jp"
-MAX_PAGES = 1000  # 🔥【極限突破】現在のシステムの限界値「1000件」に設定！
+START_URL = "https://www.google.co.jp/"
+MAX_PAGES = 1000  # 🚀 インターネットから1,000件の本物のサイトを自動収集！
 JSON_FILE = "search-index.json"
 
 def run_crawler():
@@ -22,11 +21,10 @@ def run_crawler():
     visited_urls = set()
     new_pages = []
 
-    print(f"🕸️ 限界突破クローラー起動。目標 {MAX_PAGES} 件の超大量データ収集を開始します...")
+    print(f"🚀 ネット全体から {MAX_PAGES} 件のリアルデータを集めます...")
 
-    # 高速化のために通信セッションを維持
     session = requests.Session()
-    session.headers.update({"User-Agent": "MyMegaUltimateSearchBot/1.0"})
+    session.headers.update({"User-Agent": "MyUltimateSearchBot/2.0"})
 
     while crawl_queue and len(new_pages) < MAX_PAGES:
         url = crawl_queue.pop(0)
@@ -34,18 +32,18 @@ def run_crawler():
         visited_urls.add(url)
 
         try:
-            # 大量アクセスで相手のサーバーを落とさないよう0.5秒だけ待つ（限界の速度設定）
-            time.sleep(0.5)
-            
+            time.sleep(0.5) # 相手のサイトに迷惑をかけないマナー
             response = session.get(url, timeout=3)
             if "text/html" not in response.headers.get("Content-Type", ""): continue
 
             soup = BeautifulSoup(response.text, "html.parser")
-            title = soup.title.string.strip() if soup.title and soup.title.string else "No Title"
+            title = soup.title.string.strip() if soup.title and soup.title.string else ""
+            if not title or "エラー" in title or "404" in title: continue
             
             for script in soup(["script", "style", "noscript"]): script.decompose()
-            body_text = soup.get_text(separator=" ", strip=True)[:200] # 容量削減のため200文字に制限
+            body_text = soup.get_text(separator=" ", strip=True)[:200]
 
+            # 本物のデータを格納！
             new_pages.append({
                 "title": title,
                 "url": url,
@@ -53,25 +51,21 @@ def run_crawler():
             })
             saved_urls.add(url)
 
-            # 効率よくURLを集める
+            # ページ内のリンクを見つけて次の巡回先にする（これで無限に広がります）
             for a_tag in soup.find_all("a", href=True):
                 full_url = urllib.parse.urljoin(url, a_tag["href"])
-                # 散らばりすぎを防ぐため、主要なニュース・大手ドメイン中心にクロールを制限
-                if full_url.startswith("http") and full_url not in saved_urls and len(crawl_queue) < 2000:
+                if full_url.startswith("http") and full_url not in saved_urls and len(crawl_queue) < 1500:
                     crawl_queue.append(full_url)
 
-            # 定期的に進捗を表示
             if len(new_pages) % 50 == 0:
-                print(f" 📑 現在 {len(new_pages)} 件の収集が完了しました...")
+                print(f" 📑 現在 {len(new_pages)} 件のサイトをインデックス化しました...")
 
-        except Exception as e:
-            continue # エラーが起きても無視して次のサイトへ爆速で突き進む
+        except: continue
 
     database.extend(new_pages)
     with open(JSON_FILE, "w", encoding="utf-8") as f:
         json.dump(database, f, ensure_ascii=False, indent=2)
-        
-    print(f"✨ 完了！合計 {len(database)} 件の巨大データベースが構築されました。")
+    print(f"✨ 完了！ データベースに本物のサイトが蓄積されました。")
 
 if __name__ == "__main__":
     run_crawler()
