@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My GitHub Search Engine</title>
+    <!-- 超軽量な日本語分かち書きライブラリを読み込み -->
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 700px; margin: 0 auto; padding: 40px 20px; background-color: #fff; color: #202124; }
+        h1 { font-size: 28px; text-align: center; margin-bottom: 20px; color: #4285f4; }
+        .search-container { display: flex; gap: 8px; margin-bottom: 30px; max-width: 600px; margin-left: auto; margin-right: auto; }
+        input { flex: 1; padding: 12px 16px; font-size: 16px; border: 1px solid #dfe1e5; border-radius: 24px; outline: none; box-shadow: none; transition: box-shadow 0.2s; }
+        input:focus { box-shadow: 0 1px 6px rgba(32,33,36,.28); border-color: rgba(223,225,229,0); }
+        button { padding: 0 24px; font-size: 14px; font-weight: bold; background-color: #f8f9fa; color: #3c4043; border: 1px solid #f8f9fa; border-radius: 4px; cursor: pointer; }
+        button:hover { border: 1px solid #dadce0; background-color: #f1f3f4; }
+        .status { text-align: center; font-size: 13px; color: #70757a; margin-bottom: 20px; }
+        .result-count { font-size: 14px; color: #70757a; margin-bottom: 20px; }
+        .result-item { margin-bottom: 28px; max-width: 600px; }
+        .result-title { font-size: 20px; color: #1a0dab; text-decoration: none; display: inline-block; margin-bottom: 4px; }
+        .result-title:hover { text-decoration: underline; }
+        .result-url { color: #202124; font-size: 14px; margin-bottom: 4px; word-break: break-all; }
+        .result-snippet { color: #4d5156; font-size: 14px; line-height: 1.58; }
+        .highlight { background-color: #fff2b2; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>🔍 Web Search Engine</h1>
+    <div class="status" id="status">データベースを読み込み中...</div>
+
+    <div class="search-container">
+        <input type="text" id="search-input" placeholder="キーワードを入力してください">
+        <button id="search-button">検索</button>
+    </div>
+
+    <div class="result-count" id="result-count"></div>
+    <div id="search-results"></div>
+
+    <script>
+        const segmenter = new TinySegmenter();
+        let pagesData = [];
+        const invertedIndex = {};
+
+        // ページ起動時に外部JSON（データベース）を本物の通信(Fetch API)で取得する
+        async function initSearchEngine() {
+            try {
+                // 同じフォルダにあるJSONファイルを読み込む
+                const response = await fetch('./search-index.json');
+                if (!response.ok) throw new Error('ネットワークエラー');
+                pagesData = await response.json();
+
+                // 転置インデックス（データベース）の構築
+                pagesData.forEach((page, index) => {
+                    const fullContent = `${page.title} ${page.text}`;
+                    const words = segmenter.segment(fullContent);
+                    
+                    // 単語の重複を排除して登録
+                    [...new Set(words)].forEach(word => {
+                        const cleanWord = word.trim().toLowerCase();
+                        if (cleanWord.length === 0) return;
+
+                        if (!invertedIndex[cleanWord]) {
+                            invertedIndex[cleanWord] = [];
+                        }
+                        // ページの配列インデックスを保存
+                        invertedIndex[cleanWord].push(index);
+                    });
+                });
+
+                document.getElementById('status').innerText = `準備完了: ${pagesData.length} ページが検索可能です`;
+            } catch (error) {
+                document.getElementById('status').innerText = 'データの読み込みに失敗しました。';
+                console.error(error);
+            }
+        }
+
+        // 検索を実行するメイン関数
+        function doSearch() {
+            const query = document.getElementById('search-input').value.trim().toLowerCase();
+            const resultsContainer = document.getElementById('search-results');
+            const countContainer = document.getElementById('result-count');
+            
+            resultsContainer.innerHTML = '';
+            countContainer.innerText = '';
+
+            if (!query) return;
+
+            // 検索クエリをバラバラにする
+            const queryWords = segmenter.segment(query).filter(w => w.trim().length > 0);
+            if (queryWords.length === 0) return;
+
+            // 最初に入力された単語で検索
+            const targetWord = queryWords[0];
+            const matchedPageIndexList = invertedIndex[targetWord];
+
+            if (!matchedPageIndexList) {
+                countContainer.innerText = '一致する結果は見つかりませんでした。';
+                return;
+            }
+
+            // ランキングの計算（出現回数スコアリング）
+            const searchResults = matchedPageIndexList.map(pageIndex => {
+                const page = pagesData[pageIndex];
+                const fullText = `${page.title} ${page.text}`.toLowerCase();
+                const score = (fullText.split(targetWord).length - 1);
+                return { ...page, score };
+            });
+
+            // スコアが高い順（関連度順）に並び替える
+            searchResults.sort((a, b) => b.score - a.score);
+
+            countContainer.innerText = `約 ${searchResults.length} 件 （関連度順）`;
+
+            // 画面にGoogle風のデザインで出力する
+            searchResults.forEach(result => {
+                // キーワード部分をハイライト（黄色背景）にする処理
+                const regex = new RegExp(`(${targetWord})`, 'gi');
+                const highlightedSnippet = result.text.replace(regex, '<span class="highlight">$1</span>');
+
+                const item = document.createElement('div');
+                item.className = 'result-item';
+                item.innerHTML = `
+                    <div class="result-url">${result.url}</div>
+                    <a class="result-title" href="${result.url}" target="_blank">${result.title}</a>
+                    <div class="result-snippet">${highlightedSnippet}</div>
+                `;
+                resultsContainer.appendChild(item);
+            });
+        }
+
+        // イベントリスナーの登録（ボタンクリックとEnterキー対応）
+        document.getElementById('search-button').addEventListener('click', doSearch);
+        document.getElementById('search-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') doSearch();
+        });
+
+        // 起動
+        initSearchEngine();
+    </script>
+</body>
+</html>

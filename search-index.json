@@ -1,0 +1,17 @@
+[
+  {
+    "title": "GitHub Pagesの使い方",
+    "url": "https://github.io",
+    "text": "GitHub Pagesを使うと、HTMLやCSS、JavaScriptだけで作られた静的なウェブサイトを無料で世界中に公開することができます。サーバーの知識は不要です。"
+  },
+  {
+    "title": "JavaScriptで全文検索を実装する",
+    "url": "https://github.io",
+    "text": "Node.jsなどのバックエンドサーバーを使わずに、ブラウザ上のJavaScriptだけで高速な全文検索エンジンを作る方法を解説します。転置インデックスが鍵になります。"
+  },
+  {
+    "title": "初心者向けのプログラミング学習方法",
+    "url": "https://github.io",
+    "text": "プログラミングをこれから始める初心者には、PythonやJavaScriptがおすすめです。まずは簡単なWebページやツールを自作することから始めましょう。"
+  }
+]
