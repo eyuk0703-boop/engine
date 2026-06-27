@@ -3,32 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My GitHub Search Engine</title>
+    <title>My Real Universal Search Engine</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 700px; margin: 0 auto; padding: 40px 20px; background-color: #fff; color: #202124; }
-        h1 { font-size: 28px; text-align: center; margin-bottom: 20px; color: #4285f4; }
+        h1 { font-size: 32px; text-align: center; margin-bottom: 20px; color: #1a73e8; font-weight: bold; }
         .search-container { display: flex; gap: 8px; margin-bottom: 30px; max-width: 600px; margin-left: auto; margin-right: auto; }
-        input { flex: 1; padding: 12px 16px; font-size: 16px; border: 1px solid #dfe1e5; border-radius: 24px; outline: none; box-shadow: none; transition: box-shadow 0.2s; }
+        input { flex: 1; padding: 12px 16px; font-size: 16px; border: 1px solid #dfe1e5; border-radius: 24px; outline: none; }
         input:focus { box-shadow: 0 1px 6px rgba(32,33,36,.28); border-color: rgba(223,225,229,0); }
-        button { padding: 0 24px; font-size: 14px; font-weight: bold; background-color: #f8f9fa; color: #3c4043; border: 1px solid #f8f9fa; border-radius: 4px; cursor: pointer; }
-        button:hover { border: 1px solid #dadce0; background-color: #f1f3f4; }
-        .status { text-align: center; font-size: 13px; color: #70757a; margin-bottom: 20px; }
+        button { padding: 0 24px; font-size: 14px; font-weight: bold; background-color: #f8f9fa; color: #3c4043; border: 1px solid #dfe1e5; border-radius: 24px; cursor: pointer; }
+        button:hover { background-color: #f1f3f4; }
+        .status { text-align: center; font-size: 13px; color: #34a853; font-weight: bold; margin-bottom: 20px; }
         .result-count { font-size: 14px; color: #70757a; margin-bottom: 20px; }
         .result-item { margin-bottom: 28px; max-width: 600px; }
         .result-title { font-size: 20px; color: #1a0dab; text-decoration: none; display: inline-block; margin-bottom: 4px; }
         .result-title:hover { text-decoration: underline; }
         .result-url { color: #202124; font-size: 14px; margin-bottom: 4px; word-break: break-all; }
         .result-snippet { color: #4d5156; font-size: 14px; line-height: 1.58; }
-        .highlight { background-color: #fff2b2; font-weight: bold; }
+        .error-msg { color: #ea4335; text-align: center; }
     </style>
 </head>
 <body>
 
-    <h1>🔍 Web Search Engine</h1>
-    <div class="status" id="status">データベースを読み込み中...</div>
+    <h1>🔍 My Web Search</h1>
+    <div class="status">🌐 キー不要・インターネット全体をリアルタイム検索中</div>
 
     <div class="search-container">
-        <input type="text" id="search-input" placeholder="キーワードを入力してください">
+        <input type="text" id="search-input" placeholder="インターネット全体から何でも検索...">
         <button id="search-button">検索</button>
     </div>
 
@@ -36,121 +36,65 @@
     <div id="search-results"></div>
 
     <script>
-        // ====================================================
-        // 【修正】外部エラー対策：日本語を文字単位の「文字N-gram」に分解する自作エンジン
-        // 外部ライブラリを一切使わないため、ネット切断やタイムアウトでも100%動きます
-        // ====================================================
-        function tokenize(text) {
-            // 文字列から空白や記号を簡易的に除外し、2文字ずつのペア（Bi-gram）に分解する
-            const cleanText = text.replace(/[\s\s\t\n.,\/#!$%\^&\*;:{}=\-_`~()？?！!]/g, "").toLowerCase();
-            const tokens = [];
-            for (let i = 0; i < cleanText.length - 1; i++) {
-                tokens.push(cleanText.substring(i, i + 2));
-            }
-            // 1文字の単語も検索できるように単一文字も追加
-            for (let i = 0; i < cleanText.length; i++) {
-                tokens.push(cleanText.charAt(i));
-            }
-            return tokens;
-        }
-
-        let pagesData = [];
-        const invertedIndex = {};
-
-        // ページ起動時に外部JSON（データベース）を取得する
-        async function initSearchEngine() {
-            try {
-                const response = await fetch('./search-index.json');
-                if (!response.ok) throw new Error('JSONファイルの読み込みに失敗しました');
-                pagesData = await response.json();
-
-                // 転置インデックス（データベース）の構築
-                pagesData.forEach((page, index) => {
-                    const fullContent = `${page.title} ${page.text}`;
-                    const words = tokenize(fullContent);
-                    
-                    // 重複を排除して登録
-                    [...new Set(words)].forEach(word => {
-                        if (!invertedIndex[word]) {
-                            invertedIndex[word] = [];
-                        }
-                        invertedIndex[word].push(index);
-                    });
-                });
-
-                document.getElementById('status').innerText = `準備完了: ${pagesData.length} ページが検索可能です`;
-            } catch (error) {
-                document.getElementById('status').innerText = 'データの読み込みに失敗しました。search-index.jsonが同じ場所にあるか確認してください。';
-                console.error(error);
-            }
-        }
-
-        // 検索を実行するメイン関数
-        function doSearch() {
-            const query = document.getElementById('search-input').value.trim().toLowerCase();
+        async function doSearch() {
+            const query = document.getElementById('search-input').value.trim();
             const resultsContainer = document.getElementById('search-results');
             const countContainer = document.getElementById('result-count');
             
             resultsContainer.innerHTML = '';
-            countContainer.innerText = '';
+            countContainer.innerText = '世界中のWebサイトをスキャン中...';
 
-            if (!query) return;
-
-            // 部分一致で検索（N-gram形式に対応）
-            const matchedPageIndexes = new Set();
-            
-            pagesData.forEach((page, index) => {
-                const fullText = `${page.title} ${page.text}`.toLowerCase();
-                if (fullText.includes(query)) {
-                    matchedPageIndexes.add(index);
-                }
-            });
-
-            if (matchedPageIndexes.size === 0) {
-                countContainer.innerText = '一致する結果は見つかりませんでした。';
+            if (!query) {
+                countContainer.innerText = '';
                 return;
             }
 
-            // ランキングの計算（出現回数スコアリング）
-            const searchResults = Array.from(matchedPageIndexes).map(pageIndex => {
-                const page = pagesData[pageIndex];
-                const fullText = `${page.title} ${page.text}`.toLowerCase();
-                // 検索ワードが何回含まれるかでスコアを計算
-                const score = (fullText.split(query).length - 1);
-                return { ...page, score };
-            });
+            try {
+                // 世界中の有志が解放しているオープンな検索エンジンデータベース（SearXNG）の窓口URL
+                // json=1 をつけることで、他社の画面ではなく「純粋なデータ」だけをJavaScriptで受信できます
+                const url = `https://ononoki.org{encodeURIComponent(query)}&format=json`;
+                
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('データサーバーが混雑しています。時間を置いて再度お試しください。');
+                
+                const data = await response.json();
+                const searchItems = data.results;
 
-            // スコアが高い順（関連度順）に並び替える
-            searchResults.sort((a, b) => b.score - a.score);
+                if (!searchItems || searchItems.length === 0) {
+                    countContainer.innerText = '一致する結果は見つかりませんでした。';
+                    return;
+                }
 
-            countContainer.innerText = `約 ${searchResults.length} 件 （関連度順）`;
+                countContainer.innerText = `インターネット全体から約 ${searchItems.length} 件のWebサイトを検出しました`;
 
-            // 画面にGoogle風のデザインで出力する
-            searchResults.forEach(result => {
-                // キーワード部分をハイライト（黄色背景）にする処理
-                const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(`(${escapedQuery})`, 'gi');
-                const highlightedSnippet = result.text.replace(regex, '<span class="highlight">$1</span>');
+                // 受信した「インターネット全体のデータ」を、あなたのJavaScriptで1件ずつ組み立てて画面に出す
+                searchItems.forEach(item => {
+                    // 検索結果にノイズ（不要なデータ）が入るのを防ぐ
+                    if (!item.title || !item.url) return;
 
-                const item = document.createElement('div');
-                item.className = 'result-item';
-                item.innerHTML = `
-                    <div class="result-url">${result.url}</div>
-                    <a class="result-title" href="${result.url}" target="_blank">${result.title}</a>
-                    <div class="result-snippet">${highlightedSnippet}</div>
-                `;
-                resultsContainer.appendChild(item);
-            });
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'result-item';
+                    
+                    itemDiv.innerHTML = `
+                        <div class="result-url">${item.url}</div>
+                        <a class="result-title" href="${item.url}" target="_blank">${item.title}</a>
+                        <div class="result-snippet">${item.content || '説明文はありません。'}</div>
+                    `;
+                    resultsContainer.appendChild(itemDiv);
+                });
+
+            } catch (error) {
+                countContainer.innerText = '';
+                resultsContainer.innerHTML = `<p class="error-msg">❌ 検索エラー: ${error.message}</p>`;
+                console.error(error);
+            }
         }
 
-        // イベントリスナーの登録（ボタンクリックとEnterキー対応）
+        // イベント設定
         document.getElementById('search-button').addEventListener('click', doSearch);
         document.getElementById('search-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') doSearch();
         });
-
-        // 起動
-        initSearchEngine();
     </script>
 </body>
 </html>
