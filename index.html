@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Pure Real-Web Search Engine</title>
+    <title>My Real Live OpenSearch Engine</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 700px; margin: 0 auto; padding: 40px 20px; background-color: #fff; color: #202124; }
         h1 { font-size: 32px; text-align: center; margin-bottom: 20px; color: #1a73e8; font-weight: bold; }
@@ -12,7 +12,7 @@
         input:focus { box-shadow: 0 1px 6px rgba(32,33,36,.28); border-color: rgba(223,225,229,0); }
         button { padding: 0 24px; font-size: 14px; font-weight: bold; background-color: #f8f9fa; color: #3c4043; border: 1px solid #dfe1e5; border-radius: 24px; cursor: pointer; }
         button:hover { background-color: #f1f3f4; }
-        .status { text-align: center; font-size: 13px; color: #70757a; margin-bottom: 20px; }
+        .status { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 20px; }
         .result-count { font-size: 14px; color: #70757a; margin-bottom: 20px; }
         .result-item { margin-bottom: 28px; max-width: 600px; padding: 15px; border-radius: 8px; border: 1px solid #eee; background-color: #fafafa; }
         .result-title { font-size: 20px; color: #1a0dab; text-decoration: none; display: inline-block; margin-bottom: 4px; font-weight: bold; }
@@ -20,16 +20,15 @@
         .result-url { color: #202124; font-size: 13px; margin-bottom: 4px; word-break: break-all; }
         .result-snippet { color: #4d5156; font-size: 14px; line-height: 1.58; }
         .highlight { background-color: #fff2b2; font-weight: bold; }
-        .error-msg { color: #ea4335; text-align: center; }
     </style>
 </head>
 <body>
 
     <h1>🔍 My Pure Net Search</h1>
-    <div class="status" id="status">🌐 本物のインターネット上の最新データを取得中...</div>
+    <div class="status" id="status" style="color: #70757a;">🌐 本物のインターネット上の最新データを取得中...</div>
 
     <div class="search-container">
-        <input type="text" id="search-input" placeholder="本物のWebサイトからリアルタイム検索！">
+        <input type="text" id="search-input" placeholder="宇宙、地震、IT、エンジニア知識を本物検索！">
         <button id="search-button">検索</button>
     </div>
 
@@ -37,110 +36,105 @@
     <div id="search-results"></div>
 
     <script>
-        // ====================================================
-        // 【ルール厳守】他社の画面は借りない！
-        // 以下の「本物のWebサイトのデータ窓口」からあなたのJavaScriptが直接取得します。
-        // ====================================================
-        const LIVE_SOURCES = [
-            "https://google.com",
-            "https://hatena.ne.jp",
-            "https://qiita.com"
-        ];
-
+        // 収集した本物のインターネットデータを格納する倉庫
         let PAGES_DATABASE = [];
 
-        // ページを開いた瞬間に、インターネット上の本物のサイトから一斉にデータをダウンロードする
+        // ページを開いた瞬間に、インターネット上の「直接通信を大歓迎している本物のサイト」からデータを高速ダウンロード
         async function initSearchEngine() {
             const statusDiv = document.getElementById('status');
 
-            for (const srcUrl of LIVE_SOURCES) {
-                try {
-                    // 最も安定している公共の軽量中継サービス（allorigins）を使い、セキュリティブロックを完全に回避します
-                    const proxyUrl = `https://allorigins.win{encodeURIComponent(srcUrl)}`;
-                    const response = await fetch(proxyUrl);
-                    if (!response.ok) continue;
-                    
-                    const resData = await response.json();
-                    
-                    // 中継サーバーから戻ってきた生のテキストデータをXMLとして解析
-                    const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(resData.contents, "text/xml");
-                    const items = xmlDoc.querySelectorAll("item, entry");
-                    
-                    items.forEach(item => {
-                        const title = item.querySelector("title")?.textContent || "";
-                        let link = item.querySelector("link")?.textContent || "";
-                        if (!link && item.querySelector("link")) {
-                            link = item.querySelector("link").getAttribute("href") || "";
-                        }
-                        const description = item.querySelector("description, summary")?.textContent || "";
-                        
-                        // 不要なHTMLタグをプログラムでお掃除
-                        const cleanText = description.replace(/<[^>]*>/g, '').trim();
-
-                        if (title && link) {
-                            PAGES_DATABASE.push({
-                                "title": title,
-                                "url": link.trim(),
-                                "text": cleanText.substring(0, 200) || "詳細な本文データはリンク先をご覧ください。"
-                            });
-                        }
+            try {
+                // 📡 ターゲット1: 技術系の大手情報サイト「Qiita」のオープンデータ（CORS制限なし）
+                const qiitaRes = await fetch("https://qiita.com");
+                if (qiitaRes.ok) {
+                    const articles = await qiitaRes.json();
+                    articles.forEach(article => {
+                        PAGES_DATABASE.push({
+                            "title": article.title,
+                            "url": article.url,
+                            "text": article.body.replace(/<[^>]*>/g, '').substring(0, 180) + "..."
+                        });
                     });
-                } catch (e) {
-                    console.error("データ取得スキップ:", e);
                 }
+
+                // 📡 ターゲット2: 気象庁公式の「最新の地震・防災情報」オープンデータ（CORS制限なし）
+                const eqRes = await fetch("https://jma.go.jp");
+                if (eqRes.ok) {
+                    const quakes = await eqRes.json();
+                    // 直近10件のデータを検索エンジン用に加工
+                    quakes.slice(0, 10).forEach((eq, i) => {
+                        PAGES_DATABASE.push({
+                            "title": `気象庁 防災速報: ${eq.en_anm || '地震情報'}`,
+                            "url": "https://jma.go.jp",
+                            "text": `震源地: ${eq.anm}。マグニチュードは ${eq.mag}、最大震度 ${eq.maxi} を観測した本物の気象データです。観測時刻: ${eq.at}`
+                        });
+                    });
+                }
+
+                // 📡 ターゲット3: アメリカ航空宇宙局「NASA」の今日の宇宙写真データ（CORS制限なし）
+                const nasaRes = await fetch("https://nasa.gov");
+                if (nasaRes.ok) {
+                    const nasaData = await nasaRes.json();
+                    PAGES_DATABASE.push({
+                        "title": `NASA 宇宙の記録: ${nasaData.title}`,
+                        "url": nasaData.hdurl || nasaData.url,
+                        "text": `アメリカ航空宇宙局（NASA）が本日公開した公式の宇宙解説データです。説明文: ${nasaData.explanation.substring(0, 150)}...`
+                    });
+                }
+
+            } catch (e) {
+                console.error("データ取得中にエラーが発生しました:", e);
             }
 
+            // 最終チェック
             if (PAGES_DATABASE.length > 0) {
-                statusDiv.innerText = `🟢 準備完了: 本物のインターネット上から最新の ${PAGES_DATABASE.length} ページをあなた専用にインデックスしました！`;
+                statusDiv.innerText = `🟢 準備完了: 本物のインターネットから最新の ${PAGES_DATABASE.length} ページをあなたのプログラムで読み込みました！`;
                 statusDiv.style.color = "#34a853";
             } else {
-                statusDiv.innerText = "⚠️ データの取得に失敗しました。数秒後にページを再読み込みしてください。";
+                statusDiv.innerText = "❌ 通信障害が起きています。ページを再読み込みしてください。";
                 statusDiv.style.color = "#ea4335";
             }
         }
 
-        // あなたのプログラム自作の検索＆スコアリングを実行
+        // あなたのプログラム自作の「複数ワード対応」検索ロジック
         function doSearch() {
-            const query = document.getElementById('search-input').value.trim().toLowerCase();
+            const rawQuery = document.getElementById('search-input').value.trim().toLowerCase();
             const resultsContainer = document.getElementById('search-results');
             const countContainer = document.getElementById('result-count');
             
             resultsContainer.innerHTML = '';
             countContainer.innerText = '';
 
-            if (!query || PAGES_DATABASE.length === 0) return;
+            if (!rawQuery || PAGES_DATABASE.length === 0) return;
 
-            // スペースで複数ワードに分解
-            const queryWords = query.split(/[\s　]+/).filter(w => w.length > 0);
+            const queryWords = rawQuery.split(/[\s　]+/).filter(w => w.length > 0);
             if (queryWords.length === 0) return;
 
             const matchedResults = [];
 
-            // 収集した本物のインターネットデータから、合致するページをあなたのロジックで抽出
             PAGES_DATABASE.forEach(page => {
                 const fullText = `${page.title} ${page.text}`.toLowerCase();
                 const isMatchAll = queryWords.every(word => fullText.includes(word));
 
                 if (isMatchAll) {
-                    let score = 0;
+                    let totalScore = 0;
                     queryWords.forEach(word => {
-                        score += (fullText.split(word).length - 1);
+                        totalScore += (fullText.split(word).length - 1);
                     });
-                    matchedResults.push({ ...page, score });
+                    matchedResults.push({ ...page, score: totalScore });
                 }
             });
 
             if (matchedResults.length === 0) {
-                countContainer.innerText = '一致する本物のWebサイトは見つかりませんでした。';
+                countContainer.innerText = '一致する結果は見つかりませんでした。別の言葉を試してください。';
                 return;
             }
 
-            // スコアが高い順（関連度順）に並び替える
+            // スコアが高い順に並び替え
             matchedResults.sort((a, b) => b.score - a.score);
-            countContainer.innerText = `ネット上のリアルタイムデータから ${matchedResults.length} 件の本物のサイトを検出しました！`;
+            countContainer.innerText = `インターネット上の本物データから ${matchedResults.length} 件を自力で検出しました！`;
 
-            // 画面へのデザイン出力
+            // 画面にGoogle風に出力する
             matchedResults.forEach(result => {
                 let highlightedTitle = result.title;
                 let highlightedSnippet = result.text;
@@ -152,14 +146,14 @@
                     highlightedSnippet = highlightedSnippet.replace(regex, '<span class="highlight">$1</span>');
                 });
 
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'result-item';
-                itemDiv.innerHTML = `
+                const item = document.createElement('div');
+                item.className = 'result-item';
+                item.innerHTML = `
                     <div class="result-url">${result.url}</div>
                     <a class="result-title" href="${result.url}" target="_blank">${highlightedTitle}</a>
                     <div class="result-snippet">${highlightedSnippet}</div>
                 `;
-                resultsContainer.appendChild(itemDiv);
+                resultsContainer.appendChild(item);
             });
         }
 
