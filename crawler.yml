@@ -1,0 +1,32 @@
+name: Infinite Web Crawler
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 毎日日本時間の午前9時に自動でクローラーが起動します
+  workflow_dispatch:   # GitHubの画面から手動で今すぐ起動することもできる設定
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Pythonの準備
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: 必要なライブラリのインストール
+        run: pip install requests beautifulsoup4
+
+      - name: クラウド上でクローラーを実行
+        run: python cloud_crawler.py
+
+      - name: 集めた最新データをGitHubに自動保存（コミット）
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
+          git add search-index.json
+          git diff --quiet && git diff --staged --quiet || git commit -m "ロボットが検索データを自動更新しました"
+          git push
