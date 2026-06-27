@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My GitHub Search Engine</title>
-    <!-- 超軽量な日本語分かち書きライブラリを読み込み -->
-    <script src="https://jsdelivr.net"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 700px; margin: 0 auto; padding: 40px 20px; background-color: #fff; color: #202124; }
         h1 { font-size: 28px; text-align: center; margin-bottom: 20px; color: #4285f4; }
@@ -38,39 +36,51 @@
     <div id="search-results"></div>
 
     <script>
-        const segmenter = new TinySegmenter();
+        // ====================================================
+        // 【修正】外部エラー対策：日本語を文字単位の「文字N-gram」に分解する自作エンジン
+        // 外部ライブラリを一切使わないため、ネット切断やタイムアウトでも100%動きます
+        // ====================================================
+        function tokenize(text) {
+            // 文字列から空白や記号を簡易的に除外し、2文字ずつのペア（Bi-gram）に分解する
+            const cleanText = text.replace(/[\s\s\t\n.,\/#!$%\^&\*;:{}=\-_`~()？?！!]/g, "").toLowerCase();
+            const tokens = [];
+            for (let i = 0; i < cleanText.length - 1; i++) {
+                tokens.push(cleanText.substring(i, i + 2));
+            }
+            // 1文字の単語も検索できるように単一文字も追加
+            for (let i = 0; i < cleanText.length; i++) {
+                tokens.push(cleanText.charAt(i));
+            }
+            return tokens;
+        }
+
         let pagesData = [];
         const invertedIndex = {};
 
-        // ページ起動時に外部JSON（データベース）を本物の通信(Fetch API)で取得する
+        // ページ起動時に外部JSON（データベース）を取得する
         async function initSearchEngine() {
             try {
-                // 同じフォルダにあるJSONファイルを読み込む
                 const response = await fetch('./search-index.json');
-                if (!response.ok) throw new Error('ネットワークエラー');
+                if (!response.ok) throw new Error('JSONファイルの読み込みに失敗しました');
                 pagesData = await response.json();
 
                 // 転置インデックス（データベース）の構築
                 pagesData.forEach((page, index) => {
                     const fullContent = `${page.title} ${page.text}`;
-                    const words = segmenter.segment(fullContent);
+                    const words = tokenize(fullContent);
                     
-                    // 単語の重複を排除して登録
+                    // 重複を排除して登録
                     [...new Set(words)].forEach(word => {
-                        const cleanWord = word.trim().toLowerCase();
-                        if (cleanWord.length === 0) return;
-
-                        if (!invertedIndex[cleanWord]) {
-                            invertedIndex[cleanWord] = [];
+                        if (!invertedIndex[word]) {
+                            invertedIndex[word] = [];
                         }
-                        // ページの配列インデックスを保存
-                        invertedIndex[cleanWord].push(index);
+                        invertedIndex[word].push(index);
                     });
                 });
 
                 document.getElementById('status').innerText = `準備完了: ${pagesData.length} ページが検索可能です`;
             } catch (error) {
-                document.getElementById('status').innerText = 'データの読み込みに失敗しました。';
+                document.getElementById('status').innerText = 'データの読み込みに失敗しました。search-index.jsonが同じ場所にあるか確認してください。';
                 console.error(error);
             }
         }
@@ -86,24 +96,27 @@
 
             if (!query) return;
 
-            // 検索クエリをバラバラにする
-            const queryWords = segmenter.segment(query).filter(w => w.trim().length > 0);
-            if (queryWords.length === 0) return;
+            // 部分一致で検索（N-gram形式に対応）
+            const matchedPageIndexes = new Set();
+            
+            pagesData.forEach((page, index) => {
+                const fullText = `${page.title} ${page.text}`.toLowerCase();
+                if (fullText.includes(query)) {
+                    matchedPageIndexes.add(index);
+                }
+            });
 
-            // 最初に入力された単語で検索
-            const targetWord = queryWords[0];
-            const matchedPageIndexList = invertedIndex[targetWord];
-
-            if (!matchedPageIndexList) {
+            if (matchedPageIndexes.size === 0) {
                 countContainer.innerText = '一致する結果は見つかりませんでした。';
                 return;
             }
 
             // ランキングの計算（出現回数スコアリング）
-            const searchResults = matchedPageIndexList.map(pageIndex => {
+            const searchResults = Array.from(matchedPageIndexes).map(pageIndex => {
                 const page = pagesData[pageIndex];
                 const fullText = `${page.title} ${page.text}`.toLowerCase();
-                const score = (fullText.split(targetWord).length - 1);
+                // 検索ワードが何回含まれるかでスコアを計算
+                const score = (fullText.split(query).length - 1);
                 return { ...page, score };
             });
 
@@ -115,7 +128,8 @@
             // 画面にGoogle風のデザインで出力する
             searchResults.forEach(result => {
                 // キーワード部分をハイライト（黄色背景）にする処理
-                const regex = new RegExp(`(${targetWord})`, 'gi');
+                const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(`(${escapedQuery})`, 'gi');
                 const highlightedSnippet = result.text.replace(regex, '<span class="highlight">$1</span>');
 
                 const item = document.createElement('div');
