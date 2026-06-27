@@ -25,10 +25,10 @@
 <body>
 
     <h1>🔍 My Cloud Search</h1>
-    <div class="status" id="status">クラウドデータベース読み込み中...</div>
+    <div class="status" id="status">巨大データベース読み込み中...</div>
 
     <div class="search-container">
-        <input type="text" id="search-input" placeholder="自動蓄積された無限のネットデータを検索...">
+        <input type="text" id="search-input" placeholder="極限データベースから高速検索！">
         <button id="search-button">検索</button>
     </div>
 
@@ -40,7 +40,6 @@
 
         async function initSearchEngine() {
             try {
-                // クラウドロボットが毎日更新してくれるJSONファイルを読み込む
                 const response = await fetch('./search-index.json');
                 if (!response.ok) throw new Error('データファイルが存在しません');
                 PAGES_DATABASE = await response.json();
@@ -52,43 +51,63 @@
         }
 
         function doSearch() {
-            const query = document.getElementById('search-input').value.trim().toLowerCase();
+            const rawQuery = document.getElementById('search-input').value.trim().toLowerCase();
             const resultsContainer = document.getElementById('search-results');
             const countContainer = document.getElementById('result-count');
             
             resultsContainer.innerHTML = '';
             countContainer.innerText = '';
 
-            if (!query || PAGES_DATABASE.length === 0) return;
+            if (!rawQuery || PAGES_DATABASE.length === 0) return;
 
-            const matchedIndexes = new Set();
-            PAGES_DATABASE.forEach((page, index) => {
+            const queryWords = rawQuery.split(/[\s　]+/).filter(w => w.length > 0);
+            if (queryWords.length === 0) return;
+
+            const matchedResults = [];
+
+            // 🚀 大量データ用の高速ループ処理
+            for (let i = 0; i < PAGES_DATABASE.length; i++) {
+                const page = PAGES_DATABASE[i];
                 const fullText = `${page.title} ${page.text}`.toLowerCase();
-                if (fullText.includes(query)) {
-                    matchedIndexes.add(index);
+                
+                let isMatchAll = true;
+                for (let j = 0; j < queryWords.length; j++) {
+                    if (!fullText.includes(queryWords[j])) {
+                        isMatchAll = false;
+                        break;
+                    }
                 }
-            });
 
-            if (matchedIndexes.size === 0) {
+                if (isMatchAll) {
+                    let totalScore = 0;
+                    for (let j = 0; j < queryWords.length; j++) {
+                        totalScore += (fullText.split(queryWords[j]).length - 1);
+                    }
+                    matchedResults.push({ ...page, score: totalScore });
+                }
+            }
+
+            if (matchedResults.length === 0) {
                 countContainer.innerText = '一致する結果は見つかりませんでした。';
                 return;
             }
 
-            const searchResults = Array.from(matchedIndexes).map(pageIndex => {
-                const page = PAGES_DATABASE[pageIndex];
-                const fullText = `${page.title} ${page.text}`.toLowerCase();
-                const score = (fullText.split(query).length - 1);
-                return { ...page, score };
-            });
+            matchedResults.sort((a, b) => b.score - a.score);
+            countContainer.innerText = `全体で ${matchedResults.length} 件ヒットしました（関連度の高い上位30件を表示）`;
 
-            searchResults.sort((a, b) => b.score - a.score);
-            countContainer.innerText = `${searchResults.length} 件見つかりました`;
+            // 🚀 ブラウザのフリーズを防ぐため、上位30件に絞って描画
+            const displayResults = matchedResults.slice(0, 30);
 
-            searchResults.forEach(result => {
-                const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(`(${escapedQuery})`, 'gi');
-                const highlightedTitle = result.title.replace(regex, '<span class="highlight">$1</span>');
-                const highlightedSnippet = result.text.replace(regex, '<span class="highlight">$1</span>');
+            displayResults.forEach(result => {
+                let highlightedTitle = result.title;
+                let highlightedSnippet = result.text;
+
+                queryWords.forEach(word => {
+                    const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`(${escapedWord})`, 'gi');
+                    highlightedTitle = highlightedTitle.replace(regex, '<span class="highlight">$1</span>');
+                    highlightedSnippet = highlightedSnippet.replace(regex, '<span class="highlight">$1</span>');
+                });
 
                 const item = document.createElement('div');
                 item.className = 'result-item';
